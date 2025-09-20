@@ -11,14 +11,14 @@ function Students() {
   }, []);
 
   const fetchStudents = () => {
-    axios.get("http://localhost:5000/students")
+    axios.get("/api/students")
       .then(res => setStudents(res.data))
       .catch(err => console.error(err));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    axios.post("http://localhost:5000/students", form)
+    axios.post("/api/students", form)
       .then(() => {
         fetchStudents();
         setForm({ name: "", roll_no: "", email: "" });
@@ -26,7 +26,7 @@ function Students() {
   };
 
   const handleSearch = () => {
-    axios.get(`http://localhost:5000/students/search/${search}`)
+    axios.get(`/api/students/search/${search}`)
       .then(res => setStudents(res.data))
       .catch(err => console.error(err));
   };
