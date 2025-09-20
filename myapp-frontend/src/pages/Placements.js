@@ -7,7 +7,7 @@ function Placements() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    axios.post("http://localhost:5000/placements", form)
+    axios.post("/api/placements", form)
       .then(() => {
         fetchPlacements(form.student_id);
         setForm({ student_id: "", company: "", status: "Placed" });
@@ -15,7 +15,7 @@ function Placements() {
   };
 
   const fetchPlacements = (id) => {
-    axios.get(`http://localhost:5000/placements/${id}`)
+    axios.get(`/api/placements/${id}`)
       .then(res => setPlacements(res.data))
       .catch(err => console.error(err));
   };
