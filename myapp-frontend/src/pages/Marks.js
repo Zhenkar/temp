@@ -7,7 +7,7 @@ function Marks() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    axios.post("http://localhost:5000/marks", form)
+    axios.post("/api/marks", form)
       .then(() => {
         fetchMarks(form.student_id);
         setForm({ student_id: "", subject: "", score: "" });
@@ -15,7 +15,7 @@ function Marks() {
   };
 
   const fetchMarks = (id) => {
-    axios.get(`http://localhost:5000/marks/${id}`)
+    axios.get(`/api/marks/${id}`)
       .then(res => setMarks(res.data))
       .catch(err => console.error(err));
   };
