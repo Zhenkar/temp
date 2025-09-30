@@ -10,30 +10,36 @@ echo "🚀 Starting deployment from $(pwd)"
 # 1. Update system & install base tools
 sudo apt-get update -y
 sudo apt-get upgrade -y
-sudo apt-get install -y curl git nginx build-essential
+sudo apt-get install -y curl git build-essential
 
-# 2. Install Node.js (LTS) & npm
+# 2. Install Node.js (LTS) & npm if not already installed
 if ! command -v node >/dev/null 2>&1; then
+  echo "📦 Installing Node.js 18..."
   curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
   sudo apt-get install -y nodejs
 fi
 
-# 3. Install pm2 globally
-sudo npm install -g pm2
+# 3. Install pm2 globally (to run backend as a service)
+if ! command -v pm2 >/dev/null 2>&1; then
+  echo "📦 Installing pm2..."
+  sudo npm install -g pm2
+fi
 
 # 4. Backend setup
 echo "⚙️ Setting up backend..."
 cd "${BACKEND_DIR}"
 npm install
 
-# Ensure .env exists (Terraform created it in backend dir)
+# Ensure .env exists (Terraform should have created it in backend dir)
 if [ ! -f .env ]; then
   echo "❌ .env not found in backend. Aborting."
   exit 1
 fi
 
-# Start backend with pm2
-pm2 start index.js --name myapp-backend --update-env || true
+# Restart backend with pm2
+pm2 delete myapp-backend || true
+pm2 start index.js --name myapp-backend --update-env
+pm2 save
 
 # 5. Frontend setup
 echo "⚙️ Building frontend..."
@@ -45,37 +51,9 @@ npm run build
 sudo rm -rf /var/www/html/*
 sudo cp -r build/* /var/www/html/
 
-# 6. Configure nginx
-echo "⚙️ Configuring nginx..."
-sudo tee /etc/nginx/sites-available/univ_app >/dev/null <<NGINX
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-
-    root /var/www/html;
-    index index.html;
-
-    location / {
-        try_files \$uri /index.html;
-    }
-
-    location /api/ {
-        proxy_pass http://127.0.0.1:5000/;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_cache_bypass \$http_upgrade;
-    }
-}
-NGINX
-
-sudo ln -sf /etc/nginx/sites-available/univ_app /etc/nginx/sites-enabled/univ_app
-sudo rm -f /etc/nginx/sites-enabled/default
+# 6. Restart nginx to ensure latest config is active
 sudo systemctl restart nginx
 
-# 7. Ensure pm2 survives reboot
-pm2 save
-pm2 startup systemd -u ubuntu --hp /home/ubuntu
-
-echo "✅ Deployment completed!"
+echo "✅ Deployment complete!"
+echo "👉 Backend running on :5000 (proxied as /api)"
+echo "👉 Frontend served at http://<EC2_PUBLIC_IP>/"
